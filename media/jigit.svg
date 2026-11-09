@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <!-- JiGit v3: a jigit galloping alongside a row of trees. -->
+  <g fill="#c5c5c5">
+    <path d="m20 24-11 17h5L5 55h12v10h6V55h12l-9-14h5Z"/>
+    <path d="m78 10-12 18h6L61 44h14v4h6V44h14L84 28h6Z"/>
+    <path d="m107 23-11 17h5l-9 14h12v13h6V54h12l-9-14h5Z"/>
+    <path d="M35 32V22l4-3 4 2 4-2 4 2 4-1 3 3v9Z"/>
+    <path d="M38 36h16v5a8 8 0 0 1-16 0Z"/>
+    <path d="m40 51 13-1 12 21-18 9-15-6 5-17Z"/>
+    <path d="M27 75c10-5 25 3 39-1l7-13 2-10 6 6 6-3 1 10 10 6-3 8-13-1-7 14c-9 6-28 6-39 1-8-3-12-10-9-17Z"/>
+  </g>
+  <g stroke="#c5c5c5" stroke-linecap="round" stroke-linejoin="round">
+    <path d="m51 55 12 9 13-3" stroke-width="7"/>
+    <path d="m29 78-10 3-6 13M38 90l-12 14H15m34-11-6 16H33m37-21 16 7 8 12h9m-27-26 18 3 11 12" stroke-width="7"/>
+    <path d="m51 74-4 13 9 5" stroke="#c5c5c5" stroke-width="6"/>
+  </g>
+</svg>

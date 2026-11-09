@@ -1,0 +1,13 @@
+node_modules/**
+src/**
+shared/**
+web/**
+test/**
+test-results/**
+design/**
+.vscode/**
+tsconfig.json
+build.cjs
+package-lock.json
+**/*.map
+*.vsix

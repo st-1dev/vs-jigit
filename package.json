@@ -1,0 +1,117 @@
+{
+  "name": "vs-jigit",
+  "displayName": "JiGit",
+  "description": "One Git workspace: multi-repository changes, focused diffs and a three-pane conflict resolver.",
+  "version": "0.7.2",
+  "publisher": "local-tools",
+  "license": "MIT",
+  "icon": "media/jigit.png",
+  "engines": {
+    "vscode": "^1.95.0"
+  },
+  "categories": [
+    "SCM Providers"
+  ],
+  "keywords": [
+    "git",
+    "diff",
+    "merge",
+    "conflicts",
+    "multi-root",
+    "vs-jigit"
+  ],
+  "main": "./dist/src/extension.js",
+  "extensionKind": [
+    "workspace"
+  ],
+  "extensionDependencies": [
+    "vscode.git"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false,
+      "description": "Reads repositories and runs Git operations."
+    },
+    "virtualWorkspaces": {
+      "supported": false
+    }
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "vs-jigit.open",
+        "title": "JiGit: Open Changes",
+        "icon": "$(git-compare)"
+      },
+      {
+        "command": "vs-jigit.conflicts",
+        "title": "JiGit: Resolve Conflicts",
+        "icon": "$(git-merge)"
+      },
+      {
+        "command": "vs-jigit.refresh",
+        "title": "JiGit: Refresh",
+        "icon": "$(refresh)"
+      }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "vs-jigit",
+          "title": "JiGit",
+          "icon": "media/jigit.svg"
+        }
+      ]
+    },
+    "views": {
+      "vs-jigit": [
+        {
+          "id": "vs-jigit.repositories",
+          "name": "Repositories"
+        }
+      ]
+    },
+    "menus": {
+      "view/title": [
+        {
+          "command": "vs-jigit.open",
+          "when": "view == vs-jigit.repositories",
+          "group": "navigation@1"
+        },
+        {
+          "command": "vs-jigit.refresh",
+          "when": "view == vs-jigit.repositories",
+          "group": "navigation@2"
+        }
+      ],
+      "scm/title": [
+        {
+          "command": "vs-jigit.open",
+          "when": "scmProvider == git",
+          "group": "navigation@10"
+        }
+      ]
+    },
+    "keybindings": [
+      {
+        "command": "vs-jigit.open",
+        "key": "ctrl+alt+g",
+        "mac": "cmd+alt+g"
+      }
+    ]
+  },
+  "scripts": {
+    "compile": "node build.cjs",
+    "package": "vsce package --allow-missing-repository",
+    "vscode:prepublish": "npm run compile"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "1.95.0",
+    "@vscode/vsce": "4.1.0",
+    "esbuild": "0.28.2",
+    "monaco-editor": "0.57.0",
+    "playwright": "1.65.0",
+    "typescript": "^5.9.0"
+  }
+}
