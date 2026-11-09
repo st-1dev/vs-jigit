@@ -33,6 +33,7 @@ import {
 } from "../shared/conflicts";
 import { GraphRow, layoutHistoryGraph } from "../shared/historyGraph";
 import "./style.css";
+import logo from "../media/jigit.svg";
 
 type Persisted = PanelState;
 declare function acquireVsCodeApi(): {
@@ -76,24 +77,8 @@ let workerBlob: Promise<string> | undefined;
 };
 
 const icons = {
-  logo: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" fill="none" aria-hidden="true">
-  <g fill="currentColor">
-    <path d="M17 13V7l2-2 2 1 2-1 2 1 2-1 2 2v6Z"/>
-    <circle cx="23" cy="17" r="4"/>
-    <path d="M20 23c2-2 5-1 6 1l4 11-7 5-6-3 3-8Z"/>
-    <path d="M10 36c6-2 12 3 19 0l4-9 3-3 1 4 5 3-1 5-6-1-3 10-5 2H15l-5-4Z"/>
-  </g>
-  <g stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round">
-    <path d="m25 25 7-5 5 4M24 37l-3 9 5 4M11 38c-5-2-6 3-7 7M14 45l-4 11H6m15-10-3 10m10-12 7 5 4 6h4m-11-15 8 4 4 7"/>
-    <path d="M37 24c7 9 20 9 23-4C65 1 42 1 40 13c-1 6 4 12 12 13" stroke-width="2.5"/>
-    <path d="M49 23v-9m0 5 7-5" stroke-width="2.5"/>
-  </g>
-  <g fill="currentColor">
-    <circle cx="49" cy="12" r="2.5"/>
-    <circle cx="56" cy="12" r="2.5"/>
-    <circle cx="49" cy="23" r="2.5"/>
-  </g>
-</svg>`,
+  // Use the Activity Bar artwork, inheriting the current webview theme color.
+  logo: logo.replace('<svg ', '<svg aria-hidden="true" focusable="false" ').replaceAll("#c5c5c5", "currentColor"),
   refresh:
     '<svg viewBox="0 0 20 20" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M16 8a6 6 0 1 0 0 5M16 3v5h-5"/></svg>',
   branch:
@@ -110,17 +95,18 @@ const escape = (value: string) =>
     .replaceAll("'", "&#39;");
 $("app").innerHTML = `
 <header class="topbar"><div class="brand">${icons.logo}<span>Ji<span class="brand-light">Git</span></span><span class="preview">PREVIEW</span></div><div class="workspace-info" id="workspace-info">Connecting to Git…</div><button id="refresh" class="icon-button" title="Refresh repositories" aria-label="Refresh repositories">${icons.refresh}</button></header>
-<nav class="tabs" aria-label="Workspace view"><button id="changes-tab" class="tab active">Changes <span id="changes-count">0</span></button><button id="conflicts-tab" class="tab">Conflicts <span id="conflicts-count">0</span></button><span class="tab-hint">One workspace. Every repository.</span></nav>
+<nav class="tabs" role="tablist" aria-label="Workspace view"><button id="changes-tab" role="tab" aria-selected="true" aria-controls="files" class="tab active">Changes <span id="changes-count">0</span></button><button id="conflicts-tab" role="tab" aria-selected="false" aria-controls="files" tabindex="-1" class="tab">Conflicts <span id="conflicts-count">0</span></button><span class="tab-hint">One workspace. Every repository.</span></nav>
 <div id="notice" role="status" hidden><span id="notice-text"></span><button id="dismiss" aria-label="Dismiss notification">×</button></div>
-<main class="workspace"><aside class="sidebar"><div class="sidebar-tools"><select id="repo-filter" aria-label="Filter by repository"><option value="">All repositories</option></select><input id="search" type="search" placeholder="Filter files…" aria-label="Filter files"></div><div id="files" class="files" aria-label="Changed files"></div><section class="commit"><div class="section-caption">COMMIT &amp; SYNC</div><label class="sr-only" for="commit-repo">Repository for commit, sync, branches and history</label><div class="repository-controls"><select id="commit-repo"></select><button id="history" title="Browse commits in the selected repository">History…</button><button id="branches" title="View and switch branches in the selected repository">Branches…</button></div><div id="commit-summary" class="muted"></div><textarea id="commit-message" rows="3" placeholder="Commit message…" aria-label="Commit message"></textarea><div class="commit-buttons"><button id="commit" class="primary">Commit</button><button id="commit-push" class="primary">Commit &amp; Push</button></div><div id="sync-summary" class="muted" aria-live="polite"></div><div class="sync-buttons"><button id="fetch" title="Fetch all remotes without changing working files">Fetch</button><button id="pull" title="Pull the upstream branch (fast-forward only)">↓ Pull</button><button id="push" title="Push this branch; retry after a failed Commit &amp; Push">↑ Push</button></div><button id="drafts" title="Recover or discard saved drafts">Drafts (0)</button><div class="commit-note">Selected repository · Pull: fast-forward only</div></section></aside>
-<section class="review"><div id="empty" class="empty"><div class="empty-icon">${icons.logo}</div><h1>Your changes, in one place.</h1><p>Select a file to review its diff.<br>Resolve conflicts with both sides in view.</p><div class="empty-shortcuts"><kbd>Ctrl / ⌘ S</kbd> Save draft <span>·</span> <kbd>Alt ↓ / ↑</kbd> Next / previous change</div></div>
+<div id="operation-status" role="status" aria-live="polite" hidden></div>
+<main class="workspace" aria-busy="false"><aside class="sidebar"><div class="sidebar-tools"><label class="section-caption" for="repo-filter">Show changes in</label><select id="repo-filter"><option value="">All repositories</option></select><input id="search" type="search" placeholder="Filter files…" aria-label="Filter files"></div><div id="files" class="files" role="tabpanel" aria-labelledby="changes-tab" tabindex="0"><div class="list-empty">Loading repositories…</div></div><section class="commit"><div class="commit-heading"><label class="section-caption" for="commit-repo">Commit to</label><span id="commit-summary" class="muted"></span></div><div class="repository-controls"><select id="commit-repo"></select></div><textarea id="commit-message" rows="2" placeholder="Commit message…" aria-label="Commit message" aria-describedby="commit-help commit-feedback"></textarea><div class="commit-buttons"><button id="commit" class="primary">Commit</button><button id="commit-push">Commit &amp; Push</button></div><div id="commit-help" class="muted"></div><p id="commit-feedback" class="action-error" hidden></p><details id="sync-details"><summary id="sync-caption">Sync</summary><div id="sync-summary" class="muted"></div><div class="sync-buttons"><button id="fetch" title="Fetch all remotes without changing working files">Fetch</button><button id="pull" title="Pull the upstream branch (fast-forward only)">↓ Pull</button><button id="push" title="Push this branch; retry after a failed Commit &amp; Push">↑ Push</button></div><p id="sync-feedback" class="action-error" hidden></p></details><div class="commit-links"><button id="history" title="Browse commits in the selected repository">History…</button><button id="branches" title="View and switch branches in the selected repository">Branches…</button><button id="drafts" title="Recover or discard saved drafts">Drafts (0)</button></div><div id="commit-context" class="commit-note"></div></section></aside>
+<section class="review" aria-busy="false"><div id="file-loading" role="status" hidden></div><div id="empty" class="empty"><div class="empty-icon">${icons.logo}</div><h1>Your changes, in one place.</h1><p>Select a file to review its diff.<br>Resolve conflicts with both sides in view.</p><div class="empty-shortcuts"><kbd>Ctrl / ⌘ S</kbd> Save draft <span>·</span> <kbd>Alt ↓ / ↑</kbd> Next / previous change</div></div>
 <div id="file-view" hidden><header class="file-heading"><div class="file-identity"><span id="file-status" class="status"></span><div><strong id="file-name"></strong><div id="file-path" class="muted"></div></div></div><span id="draft-state" class="muted"></span><button id="reload" title="Reload from disk; discard this file's draft">Reload</button><button id="open-file">Open file ↗</button></header>
-<div class="review-toolbar"><div class="toolbar-group"><button id="prev-change" title="Previous change (Alt+Up)" aria-label="Previous change">↑</button><button id="next-change" title="Next change (Alt+Down)" aria-label="Next change">↓</button><span id="diff-summary" class="muted" aria-live="polite"></span></div><div class="toolbar-group" id="diff-options"><label><input type="checkbox" id="inline"> Inline</label><label><input type="checkbox" id="context" checked> Collapse context</label><label><input type="checkbox" id="whitespace"> Ignore whitespace</label></div><div class="toolbar-group" id="merge-actions" hidden><button id="accept-yours" title="Accept Yours for the selected conflict block">Yours →</button><button id="accept-both" title="Accept Yours followed by Theirs for the selected block">Both</button><button id="accept-theirs" title="Accept Theirs for the selected conflict block">← Theirs</button></div><div class="toolbar-group"><button id="save">Save</button><button id="stage" class="primary">Stage file</button><button id="unstage">Unstage file</button><button id="resolve" class="primary">Mark resolved</button></div></div>
+<div class="review-toolbar"><div class="toolbar-group"><button id="prev-change" title="Previous change (Alt+Up)" aria-label="Previous change">↑</button><button id="next-change" title="Next change (Alt+Down)" aria-label="Next change">↓</button><span id="diff-summary" class="muted" aria-live="polite"></span></div><div class="toolbar-group" id="merge-actions" hidden><button id="accept-yours" title="Accept Yours for the selected conflict block">Yours →</button><button id="accept-both" title="Accept Yours followed by Theirs for the selected block">Both</button><button id="accept-theirs" title="Accept Theirs for the selected conflict block">← Theirs</button></div><div class="toolbar-group"><button id="save">Save</button><button id="stage" class="primary">Stage file</button><button id="unstage">Unstage file</button><button id="resolve" class="primary">Mark resolved</button></div></div>
 <div id="unsupported" class="unsupported" hidden></div>
-<div id="hunk-actions" class="hunk-actions" hidden><label for="hunk-select">Git block</label><select id="hunk-select" aria-label="Git block"></select><button id="show-hunk">Show block</button><button id="move-hunk" class="primary">Stage block</button><span id="hunk-help" class="muted"></span></div>
-<div id="diff-labels" class="pane-labels"><span id="before-label"></span><span id="after-label"></span></div><div id="diff-editor" class="editor-host"></div>
-<div id="merge-labels" class="merge-labels" hidden><span><i class="dot yours"></i>Yours <small>Git stage 2</small></span><span><i class="dot result"></i>Result <small>editable · undo supported</small></span><span><i class="dot theirs"></i>Theirs <small>Git stage 3</small></span></div>
-<div id="merge-editors" class="merge-editors" hidden><div id="yours-editor"></div><div id="result-editor"></div><div id="theirs-editor"></div></div>
+<details id="review-settings"><summary>Diff options &amp; Git blocks</summary><div class="toolbar-group" id="diff-options"><label><input type="checkbox" id="inline"> Inline</label><label><input type="checkbox" id="context" checked> Collapse context</label><label><input type="checkbox" id="whitespace"> Ignore whitespace</label></div><div id="hunk-actions" class="hunk-actions" hidden><label for="hunk-select">Git block</label><select id="hunk-select" aria-label="Git block"></select><button id="show-hunk">Show block</button><button id="move-hunk" class="primary">Stage block</button><span id="hunk-help" class="muted"></span></div></details>
+<div id="diff-labels" class="pane-labels"><span id="inline-label" hidden></span><span id="before-label"></span><span id="after-label"></span></div><div id="diff-editor" class="editor-host"></div>
+<div id="merge-source-controls" role="group" aria-label="Compare source" hidden><span>Compare source</span><button id="show-yours" aria-pressed="true" aria-controls="yours-pane">Yours</button><button id="show-theirs" aria-pressed="false" aria-controls="theirs-pane">Theirs</button></div>
+<div id="merge-editors" class="merge-editors" hidden><section id="yours-pane" class="merge-pane" aria-label="Yours"><header><i class="dot yours"></i>Yours <small>Git stage 2 · read-only</small></header><div id="yours-editor" class="merge-editor-host"></div></section><section id="result-pane" class="merge-pane" aria-label="Result"><header><i class="dot result"></i>Result <small>editable · undo supported</small></header><div id="result-editor" class="merge-editor-host"></div></section><section id="theirs-pane" class="merge-pane" aria-label="Theirs"><header><i class="dot theirs"></i>Theirs <small>Git stage 3 · read-only</small></header><div id="theirs-editor" class="merge-editor-host"></div></section></div>
 <footer class="review-footer"><span id="review-help"></span><span id="encoding">UTF-8</span></footer></div></section></main>
 <dialog id="history-dialog" aria-labelledby="history-title"><h2 id="history-title">Commit history</h2><p id="history-repo"></p><p id="history-status" role="status">Loading history…</p><div class="history-layout"><section class="history-sidebar"><input id="history-search" type="search" placeholder="Filter loaded commits…" aria-label="Filter loaded commits"><p id="history-graph-note" class="muted"></p><div id="history-list" aria-label="Commits"></div><button id="history-more">Load more</button></section><section class="history-review"><div class="history-details"><pre id="history-message">Select a commit to review its changes.</pre><p id="history-parent"></p><div id="history-files" aria-label="Commit files"></div></div><p id="history-diff-label">Select a file · read-only</p><div id="history-diff"></div></section></div><div class="history-footer"><button id="refresh-history">Refresh history</button><button id="close-history">Close</button></div></dialog>
 <dialog id="branches-dialog" aria-labelledby="branches-title"><h2 id="branches-title">Branches</h2><p id="branches-repo"></p><input id="branch-search" type="search" placeholder="Filter branches…" aria-label="Filter branches"><p id="branch-status" role="status">Switching requires a clean repository and saved drafts.</p><div id="branch-list"></div><div><button id="refresh-branches">Refresh branches</button><button id="close-branches">Close</button></div></dialog>
@@ -131,6 +117,7 @@ $("app").innerHTML = `
 <dialog id="delete-draft-dialog"><h2>Discard this draft?</h2><p>The unsaved text will be removed from JiGit.</p><button id="keep-draft">Keep draft</button><button id="delete-draft">Discard draft</button></dialog>`;
 
 let snapshot: Snapshot = { repositories: [] };
+let snapshotReceived = false;
 let selectedRepo = persisted.repo || "";
 let commitRepo = selectedRepo;
 let conflictsOnly = false;
@@ -147,6 +134,7 @@ let branchRepo = "";
 let branchList: BranchList | undefined;
 let loadGeneration = 0;
 let currentConflict = 0;
+let mergeSource: "yours" | "theirs" = "yours";
 let diff: monaco.editor.IStandaloneDiffEditor | undefined;
 let hunkHighlights: monaco.editor.IEditorDecorationsCollection[] = [];
 let result: monaco.editor.IStandaloneCodeEditor | undefined;
@@ -189,18 +177,55 @@ function notify(message: string, error = false) {
   if ($<HTMLDialogElement>("history-dialog").open) $("history-status").textContent = message;
   if ($<HTMLDialogElement>("branches-dialog").open) $("branch-status").textContent = message;
 }
-async function task(action: () => Promise<void>) {
+async function task(
+  action: () => Promise<void>,
+  progress = "Working…",
+  control?: { id: string; caption: string; feedback: string },
+) {
   if (busy) return;
+  const focus = captureFileFocus();
+  const origin = document.activeElement instanceof HTMLElement ? document.activeElement : undefined;
   ++loadGeneration;
+  clearFileLoading();
   busy = true;
+  const button = control ? $(control.id) : undefined;
+  const caption = button?.textContent;
+  if (button && control) {
+    button.textContent = control.caption;
+    button.setAttribute("aria-busy", "true");
+    $(control.feedback).hidden = true;
+    $(control.feedback).dataset.repo = commitRepo;
+  }
+  $("operation-status").hidden = false;
+  $("operation-status").textContent = progress;
+  document.querySelector(".workspace")!.setAttribute("aria-busy", "true");
   syncControls();
   try {
     await action();
   } catch (error) {
-    notify(error instanceof Error ? error.message : String(error), true);
+    const message = error instanceof Error ? error.message : String(error);
+    notify(message, true);
+    if (control) {
+      $(control.feedback).textContent = message;
+      $(control.feedback).hidden = false;
+      if (control.feedback === "sync-feedback") $<HTMLDetailsElement>("sync-details").open = true;
+    }
   } finally {
     busy = false;
+    if (button) {
+      button.textContent = caption || "";
+      button.removeAttribute("aria-busy");
+    }
+    $("operation-status").hidden = true;
+    $("operation-status").textContent = "";
+    document.querySelector(".workspace")!.setAttribute("aria-busy", "false");
     syncControls();
+    // A list rebuild or disabling its buttons may have moved focus to BODY.
+    // Leave focus alone if the user moved to another control while waiting.
+    if (focus && (document.activeElement === document.body || $("files").contains(document.activeElement)))
+      restoreFileFocus(focus);
+    else if (!focus && document.activeElement === document.body && origin?.isConnected)
+      origin.focus({ preventScroll: true });
   }
 }
 function draftText(): string {
@@ -225,6 +250,7 @@ function recordDraft() {
   renderFiles();
 }
 function applySnapshot(next: Snapshot) {
+  snapshotReceived = true;
   snapshot = next;
   if (
     selectedRepo &&
@@ -233,10 +259,12 @@ function applySnapshot(next: Snapshot) {
     selectedRepo = "";
   if (!snapshot.repositories.some((repo) => repo.id === commitRepo))
     commitRepo = selectedRepo || snapshot.repositories[0]?.id || "";
+  if (file && (!snapshot.repositories.some((repo) => repo.id === file!.change.repo) || selectedRepo && file.change.repo !== selectedRepo))
+    clearFile();
   const options = snapshot.repositories
     .map(
       (repo) =>
-        `<option value="${escape(repo.id)}">${escape(repo.name)} · ${escape(repo.branch)}</option>`,
+        `<option value="${escape(repo.id)}" title="${escape(repo.root)}">${escape(repo.name)} · ${escape(repo.branch)}</option>`,
     )
     .join("");
   $("repo-filter").innerHTML =
@@ -260,8 +288,10 @@ function applySnapshot(next: Snapshot) {
   syncControls();
 }
 function renderFiles() {
+  const focus = captureFileFocus();
+  const scrollTop = $("files").scrollTop;
   closeFileMenu();
-  const query = ($("search") as HTMLInputElement).value.toLowerCase();
+  const query = ($("search") as HTMLInputElement).value.trim().toLowerCase();
   const groups = conflictsOnly
     ? (["conflict"] as const)
     : (["conflict", "working", "staged"] as const);
@@ -270,7 +300,6 @@ function renderFiles() {
     working: "Local changes",
     staged: "Staged changes",
   };
-  let count = 0;
   const batches: Change[][] = [];
   $("files").innerHTML = snapshot.repositories
     .filter((repo) => !selectedRepo || repo.id === selectedRepo)
@@ -282,31 +311,37 @@ function renderFiles() {
               change.group === group &&
               `${change.path} ${repo.name}`.toLowerCase().includes(query),
           );
-          count += changes.length;
           if (!changes.length && group === "conflict") return "";
           const batchId = batches.push(changes) - 1;
           const batchControls = group === "conflict" || !changes.length ? "" : `<button class="batch-move" data-batch="${batchId}" title="${group === "working" ? "Stage" : "Unstage"} all visible files in this group" ${busy || changes.some(hasDraft) ? "disabled" : ""}>${group === "working" ? "Stage" : "Unstage"} all</button>`;
-          return `<div class="change-group" data-repo="${escape(repo.id)}" data-group="${group}"><div class="group-heading ${group}">${batchControls}<span>${names[group]} · ${changes.length}</span></div>${!changes.length ? '<div class="drop-hint">Drop files here</div>' : ""}${changes
+          return `<div class="change-group${changes.length ? "" : " empty-group"}" data-repo="${escape(repo.id)}" data-group="${group}"><div class="group-heading ${group}">${batchControls}<span>${names[group]} · ${changes.length}</span></div>${!changes.length ? '<div class="drop-hint">Drop files here</div>' : ""}${changes
             .map((change) => {
               const slash = change.path.lastIndexOf("/"),
                 name = change.path.slice(slash + 1),
                 dir = change.path.slice(0, slash + 1);
-              return `<div class="file-item" data-item="${escape(change.id)}" draggable="${!busy && group !== "conflict" && !hasDraft(change)}"><button class="file-row" data-change="${escape(change.id)}" title="${escape(change.originalPath ? `${change.originalPath} → ${change.path}` : change.path)} · Ctrl/⌘+click to select · Shift+click for range${group === "conflict" ? "" : ` · Double-click to ${group === "working" ? "stage" : "unstage"} · Right-click for actions`}" ${busy ? "disabled" : ""}><span class="status status-${group === "conflict" ? "conflict" : change.status}">${group === "conflict" ? "!" : escape(change.status)}</span><span class="row-path"><span>${escape(name)}</span><small>${escape(dir || "./")}</small></span>${persisted.drafts[change.id] ? '<i class="draft-dot" title="Unsaved draft"></i>' : ""}</button>${group === "conflict" ? "" : `<button class="file-stage" data-move="${escape(change.id)}" title="${hasDraft(change) ? "Save or reload this file's draft before moving it" : group === "working" ? "Stage file" : "Unstage file"}" aria-label="${group === "working" ? "Stage" : "Unstage"} ${escape(change.path)}" ${busy || hasDraft(change) ? "disabled" : ""}>${group === "working" ? "+" : "−"}</button>`}</div>`;
+              return `<div class="file-item" data-item="${escape(change.id)}" data-repo="${escape(change.repo)}" data-path="${escape(change.path)}" draggable="${!busy && group !== "conflict" && !hasDraft(change)}"><button class="file-row" data-change="${escape(change.id)}" title="${escape(change.originalPath ? `${change.originalPath} → ${change.path}` : change.path)} · Ctrl/⌘+click to select · Shift+click for range${group === "conflict" ? "" : ` · Double-click to ${group === "working" ? "stage" : "unstage"} · Right-click for actions`}" ${busy ? "disabled" : ""}><span class="status status-${group === "conflict" ? "conflict" : change.status}">${group === "conflict" ? "!" : escape(change.status)}</span><span class="row-path"><span>${escape(name)}</span><small>${escape(dir || "./")}</small></span>${persisted.drafts[change.id] ? '<i class="draft-dot" title="Unsaved draft"></i>' : ""}</button>${group === "conflict" ? "" : `<button class="file-stage" data-move="${escape(change.id)}" title="${hasDraft(change) ? "Save or reload this file's draft before moving it" : group === "working" ? "Stage file" : "Unstage file"}" aria-label="${group === "working" ? "Stage" : "Unstage"} ${escape(change.path)}" ${busy || hasDraft(change) ? "disabled" : ""}>${group === "working" ? "+" : "−"}</button>`}</div>`;
             })
             .join("")}</div>`;
         })
         .join("");
-      return `<section class="repository"><div class="repo-heading" title="${escape(repo.root)}"><span class="repo-symbol">▱</span><strong>${escape(repo.name)}</strong><button class="repo-branch" data-branches="${escape(repo.id)}" title="View and switch branches in ${escape(repo.name)}" ${busy || repo.error ? "disabled" : ""}>${icons.branch}${escape(repo.branch)}</button></div>${repo.error ? `<p class="repo-error">${escape(repo.error)}</p>` : sections || '<p class="repo-clean">No matching changes</p>'}</section>`;
+      const inMode = repo.changes.filter((change) => !conflictsOnly || change.group === "conflict");
+      const matches = inMode.filter((change) => `${change.path} ${repo.name}`.toLowerCase().includes(query));
+      const empty = query && !matches.length
+        ? `<div class="repo-clean">No files match “${escape(query)}” in this view. <button data-clear-search>Clear filter</button></div>`
+        : !inMode.length ? `<p class="repo-clean">${conflictsOnly ? "No conflicts in this view" : "Working tree clean"}</p>` : "";
+      return `<section class="repository"><div class="repo-heading" title="${escape(repo.root)}"><span class="repo-symbol">▱</span><strong>${escape(repo.name)}</strong><button class="repo-branch" data-branches="${escape(repo.id)}" title="View and switch branches in ${escape(repo.name)}" ${busy || repo.error ? "disabled" : ""}>${icons.branch}${escape(repo.branch)}</button></div>${repo.error ? `<p class="repo-error">${escape(repo.error)}</p>` : empty + sections}</section>`;
     })
     .join("");
   if (!snapshot.repositories.length)
     $("files").innerHTML =
       '<div class="list-empty"><strong>No repositories yet</strong><p>Open a folder with Git, or add repositories to your VS Code workspace. JiGit follows the built-in Git discovery.</p></div>';
-  else if (!count && conflictsOnly)
-    $("files").insertAdjacentHTML(
-      "beforeend",
-      '<div class="list-empty"><strong>No conflicts to resolve</strong><p>Your repositories are ready for the next change.</p></div>',
-    );
+  $("files").querySelectorAll<HTMLButtonElement>("[data-clear-search]").forEach((button) => {
+    button.onclick = () => {
+      $<HTMLInputElement>("search").value = "";
+      renderFiles();
+      $("search").focus();
+    };
+  });
   $("files").querySelectorAll<HTMLButtonElement>("[data-branches]").forEach((button) => {
     button.onclick = () => void openBranches(button.dataset.branches!);
   });
@@ -353,6 +388,9 @@ function renderFiles() {
         return;
       }
       dragged = change;
+      $("files").querySelectorAll<HTMLElement>(".empty-group").forEach((group) => {
+        group.classList.toggle("drop-available", group.dataset.repo === change.repo && group.dataset.group !== change.group);
+      });
       event.dataTransfer!.effectAllowed = "move";
       event.dataTransfer!.setData("application/x-vs-jigit-change", change.id);
     };
@@ -378,10 +416,68 @@ function renderFiles() {
       if (change) void moveFile(change);
     };
   });
+  $("files").scrollTop = scrollTop;
+  if (focus && !busy) restoreFileFocus(focus);
+}
+type FileFocus = {
+  repo: string;
+  path?: string;
+  group?: string;
+  id?: string;
+  action: "data-move" | "data-change" | "data-batch" | "data-branches";
+  index: number;
+};
+function captureFileFocus(): FileFocus | undefined {
+  const active = document.activeElement;
+  if (!(active instanceof HTMLButtonElement) || !$("files").contains(active)) return;
+  const buttons = Array.from($("files").querySelectorAll<HTMLButtonElement>("button"));
+  const item = active.closest<HTMLElement>("[data-item]");
+  const group = active.closest<HTMLElement>(".change-group");
+  const action = active.hasAttribute("data-move") ? "data-move" : active.hasAttribute("data-change") ? "data-change" : active.hasAttribute("data-batch") ? "data-batch" : "data-branches";
+  return {
+    repo: item?.dataset.repo || group?.dataset.repo || active.dataset.branches!,
+    path: item?.dataset.path,
+    group: group?.dataset.group,
+    id: item?.dataset.item,
+    action,
+    index: buttons.indexOf(active),
+  };
+}
+function restoreFileFocus(focus: FileFocus) {
+  const list = $("files");
+  const items = Array.from(list.querySelectorAll<HTMLElement>("[data-item]"));
+  const item = items.find((item) => item.dataset.item === focus.id)
+    || items.find((item) => item.dataset.repo === focus.repo && item.dataset.path === focus.path);
+  const enabled = "button:not(:disabled)";
+  let target = item?.querySelector<HTMLButtonElement>(`button[${focus.action}]:not(:disabled)`)
+    || item?.querySelector<HTMLButtonElement>(enabled);
+  if (!target && !focus.path) {
+    if (focus.action === "data-branches")
+      target = Array.from(list.querySelectorAll<HTMLButtonElement>("[data-branches]:not(:disabled)")).find((button) => button.dataset.branches === focus.repo);
+    else {
+      const group = Array.from(list.querySelectorAll<HTMLElement>(".change-group")).find((group) => group.dataset.repo === focus.repo && group.dataset.group === focus.group);
+      target = group?.querySelector<HTMLButtonElement>(enabled);
+    }
+  }
+  if (!target) {
+    const buttons = Array.from(list.querySelectorAll<HTMLButtonElement>("button"));
+    const rows = buttons.filter((button) => button.hasAttribute("data-change") && !button.disabled);
+    const candidates = rows.filter((button) => button.closest<HTMLElement>("[data-item]")?.dataset.repo === focus.repo);
+    target = (candidates.length ? candidates : rows).sort((a, b) => Math.abs(buttons.indexOf(a) - focus.index) - Math.abs(buttons.indexOf(b) - focus.index))[0];
+  }
+  if (!target) {
+    $("search").focus({ preventScroll: true });
+    return;
+  }
+  target.focus({ preventScroll: true });
+  const bounds = list.getBoundingClientRect(), rect = target.getBoundingClientRect();
+  if (rect.top < bounds.top || rect.bottom > bounds.bottom)
+    target.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 function clearDrop() {
   dragged = undefined;
   document.querySelectorAll(".drop-target").forEach((group) => group.classList.remove("drop-target"));
+  document.querySelectorAll(".drop-available").forEach((group) => group.classList.remove("drop-available"));
 }
 function visibleChanges(): Change[] {
   return Array.from($("files").querySelectorAll<HTMLElement>("[data-change]"))
@@ -546,11 +642,18 @@ function selectedCommitRepo(): Repository | undefined {
 }
 function renderCommit() {
   const repo = selectedCommitRepo();
+  for (const id of ["commit-feedback", "sync-feedback"])
+    if ($(id).dataset.repo !== commitRepo) $(id).hidden = true;
+  $("commit-context").textContent = repo ? `${repo.root} · Pull: fast-forward only` : "Select a repository";
+  $("commit-context").title = $("commit-context").textContent || "";
+  $("commit-repo").title = repo ? `Commit, sync, branches and history: ${repo.name} · ${repo.root}` : "Select a repository";
   const staged =
     repo?.changes.filter((change) => change.group === "staged").length || 0;
   $("sync-summary").textContent = repo ? repo.syncError || (repo.upstream
     ? `${repo.upstream} · ↑ ${repo.ahead ?? "?"} ahead · ↓ ${repo.behind ?? "?"} behind (last fetched)`
     : "No upstream configured") : "";
+  $("sync-caption").textContent = repo?.syncError ? "Sync · needs attention"
+    : repo?.upstream ? `Sync · ↑ ${repo.ahead ?? "?"} · ↓ ${repo.behind ?? "?"}` : "Sync";
   $("commit-summary").textContent =
     `${staged} staged ${staged === 1 ? "file" : "files"}`;
   ($("commit-message") as HTMLTextAreaElement).value =
@@ -592,12 +695,16 @@ function syncControls() {
         `${count ? `${currentConflict + 1}/${count} · ` : ""}${count} unresolved ${count === 1 ? "block" : "blocks"}`;
   }
   const repo = selectedCommitRepo();
+  const commitBlocked = !repo ? "Select a repository to commit."
+    : repo.error ? `Repository unavailable: ${repo.error}`
+    : repo.changes.some((change) => change.group === "conflict") ? "Resolve conflicts before committing."
+    : !repo.changes.some((change) => change.group === "staged") ? "Stage files to include them in a commit."
+    : !$<HTMLTextAreaElement>("commit-message").value.trim() ? "Enter a commit message."
+    : "";
+  $("commit-help").textContent = commitBlocked;
+  $("commit-help").hidden = !commitBlocked;
   ($("commit") as HTMLButtonElement).disabled =
-    busy ||
-    !repo ||
-    !repo.changes.some((change) => change.group === "staged") ||
-    repo.changes.some((change) => change.group === "conflict") ||
-    !($("commit-message") as HTMLTextAreaElement).value.trim();
+    busy || !!commitBlocked;
   ($("commit-push") as HTMLButtonElement).disabled = ($("commit") as HTMLButtonElement).disabled;
   ($("fetch") as HTMLButtonElement).disabled = busy || !repo || !!repo.error;
   ($("pull") as HTMLButtonElement).disabled = busy || !repo || !!repo.error;
@@ -735,19 +842,32 @@ new MutationObserver(theme).observe(document.body, {
 
 async function selectFile(change: Change, discard = false) {
   if (busy) return;
+  // Draft recovery may open a file outside the current repository filter.
+  if (selectedRepo && selectedRepo !== change.repo) {
+    selectedRepo = change.repo;
+    if (file && file.change.repo !== selectedRepo) clearFile();
+    $<HTMLSelectElement>("repo-filter").value = selectedRepo;
+    renderFiles();
+  }
   const generation = ++loadGeneration;
-  $("draft-state").textContent = "Loading…";
+  $("file-loading").hidden = false;
+  $("file-loading").textContent = `Loading ${change.path}…`;
+  $("file-view").setAttribute("aria-busy", "true");
   try {
     const response = await request({ type: "load", change });
-    if (generation !== loadGeneration || !response.file) return;
+    if (generation !== loadGeneration || !response.file || !snapshot.repositories.some((repo) => repo.id === change.repo) || selectedRepo && selectedRepo !== change.repo) return;
     if (discard) delete persisted.drafts[change.id];
     showFile(response.file);
-    commitRepo = change.repo;
-    ($("commit-repo") as HTMLSelectElement).value = commitRepo;
-    renderCommit();
   } catch (error) {
     if (generation === loadGeneration) notify(String(error), true);
+  } finally {
+    if (generation === loadGeneration) clearFileLoading();
   }
+}
+function clearFileLoading() {
+  $("file-loading").hidden = true;
+  $("file-loading").textContent = "";
+  $("file-view").setAttribute("aria-busy", "false");
 }
 function disposeEditors() {
   for (const disposable of disposables) disposable.dispose();
@@ -794,6 +914,7 @@ function showFile(next: FileView) {
   );
   $("file-path").textContent =
     `${repo?.name || ""} / ${file.change.originalPath ? `${file.change.originalPath} → ` : ""}${file.change.path}`;
+  $("file-path").title = $("file-path").textContent || "";
   $("file-status").textContent = merge ? "!" : file.change.status;
   $("file-status").className =
     `status status-${merge ? "conflict" : file.change.status}`;
@@ -802,7 +923,7 @@ function showFile(next: FileView) {
   $("diff-editor").hidden = merge || !!file.reason;
   $("diff-labels").hidden = merge || !!file.reason;
   $("merge-editors").hidden = !merge || !!file.reason;
-  $("merge-labels").hidden = !merge || !!file.reason;
+  $("review-settings").hidden = merge || !!file.reason;
   $("diff-options").hidden = merge || !!file.reason;
   $("merge-actions").hidden = !merge || !!file.reason;
   if (!file.reason && merge) {
@@ -850,8 +971,8 @@ function showFile(next: FileView) {
       ...editorOptions(),
       readOnly: !file.editable,
       originalEditable: false,
-      renderSideBySide: !($("inline") as HTMLInputElement).checked,
-      useInlineViewWhenSpaceIsLimited: true,
+      renderSideBySide: sideBySideDiff(),
+      useInlineViewWhenSpaceIsLimited: false,
       hideUnchangedRegions: {
         enabled: ($("context") as HTMLInputElement).checked,
       },
@@ -914,8 +1035,51 @@ function showFile(next: FileView) {
     if (!persisted.drafts[button.dataset.change!]) dot?.remove();
     else if (!dot) button.insertAdjacentHTML("beforeend", '<i class="draft-dot" title="Unsaved draft"></i>');
   });
+  updateReviewLayout();
   syncControls();
   persist();
+}
+
+// Control Monaco's mode and its labels from the same measured pane width.
+// The observer also follows the user-resizable sidebar, not just window resizes.
+function sideBySideDiff() {
+  return !$<HTMLInputElement>("inline").checked && $("diff-editor").clientWidth > 700;
+}
+function updateReviewLayout() {
+  const compact = document.querySelector<HTMLElement>(".review")!.clientWidth < 900;
+  const merge = file?.change.group === "conflict" && !file.reason;
+  $("merge-editors").classList.toggle("compact", compact);
+  $("merge-source-controls").hidden = !merge || !compact;
+  // Keep keyboard/reading order aligned with the stacked source and Result.
+  const sourcePane = $("theirs-pane"), resultPane = $("result-pane");
+  if (compact ? sourcePane.nextElementSibling !== resultPane : sourcePane.previousElementSibling !== resultPane) {
+    const focused = sourcePane.contains(document.activeElement);
+    $("merge-editors").insertBefore(sourcePane, compact ? resultPane : null);
+    if (focused) theirs?.focus();
+  }
+  for (const side of ["yours", "theirs"] as const) {
+    const pane = $(`${side}-pane`);
+    const hide = compact && mergeSource !== side;
+    if (hide && pane.contains(document.activeElement)) $(`show-${mergeSource}`).focus();
+    pane.hidden = hide;
+    $(`show-${side}`).setAttribute("aria-pressed", String(mergeSource === side));
+  }
+  if (diff && file) {
+    const split = sideBySideDiff();
+    diff.updateOptions({ renderSideBySide: split });
+    $("diff-labels").classList.toggle("inline", !split);
+    $("inline-label").hidden = split;
+    $("before-label").hidden = !split;
+    $("after-label").hidden = !split;
+    $("inline-label").textContent = `${$("before-label").textContent} → ${$("after-label").textContent} · Inline diff`;
+  }
+}
+new ResizeObserver(updateReviewLayout).observe(document.querySelector(".review")!);
+for (const side of ["yours", "theirs"] as const) {
+  $(`show-${side}`).onclick = () => {
+    mergeSource = side;
+    updateReviewLayout();
+  };
 }
 
 function renderConflicts() {
@@ -1044,13 +1208,28 @@ function setMode(conflicts: boolean) {
   conflictsOnly = conflicts;
   $("changes-tab").classList.toggle("active", !conflicts);
   $("conflicts-tab").classList.toggle("active", conflicts);
+  for (const [id, selected] of [["changes-tab", !conflicts], ["conflicts-tab", conflicts]] as const) {
+    $(id).setAttribute("aria-selected", String(selected));
+    $(id).tabIndex = selected ? 0 : -1;
+  }
+  $("files").setAttribute("aria-labelledby", conflicts ? "conflicts-tab" : "changes-tab");
   renderFiles();
 }
 $("changes-tab").onclick = () => setMode(false);
 $("conflicts-tab").onclick = () => setMode(true);
+document.querySelector(".tabs")!.addEventListener("keydown", (event) => {
+  const key = (event as KeyboardEvent).key;
+  if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(key)) return;
+  event.preventDefault();
+  setMode(key === "Home" ? false : key === "End" ? true : !conflictsOnly);
+  $(conflictsOnly ? "conflicts-tab" : "changes-tab").focus();
+});
 $("search").oninput = renderFiles;
 $("repo-filter").onchange = () => {
+  ++loadGeneration;
+  clearFileLoading();
   selectedRepo = ($("repo-filter") as HTMLSelectElement).value;
+  if (selectedRepo && file && file.change.repo !== selectedRepo) clearFile();
   if (selectedRepo) {
     commitRepo = selectedRepo;
     ($("commit-repo") as HTMLSelectElement).value = commitRepo;
@@ -1061,6 +1240,8 @@ $("repo-filter").onchange = () => {
 };
 $("commit-repo").onchange = () => {
   commitRepo = ($("commit-repo") as HTMLSelectElement).value;
+  $("commit-feedback").hidden = true;
+  $("sync-feedback").hidden = true;
   renderCommit();
 };
 $("commit-message").oninput = () => {
@@ -1071,10 +1252,13 @@ $("commit-message").oninput = () => {
   syncControls();
 };
 function clearFile() {
+  ++loadGeneration;
+  clearFileLoading();
   disposeEditors();
   file = undefined;
   $("file-view").hidden = true;
   $("empty").hidden = false;
+  $("merge-source-controls").hidden = true;
   renderFiles();
   persist();
 }
@@ -1085,9 +1269,9 @@ function finishCommit(repo: Repository) {
   persist();
 }
 function commit(type: "commit" | "commitPush") {
+  const repo = selectedCommitRepo();
+  if (!repo) return;
   return task(async () => {
-    const repo = selectedCommitRepo();
-    if (!repo) return;
     const response = await request({
       type,
       repo: repo.id,
@@ -1099,21 +1283,24 @@ function commit(type: "commit" | "commitPush") {
     notify(type === "commitPush"
       ? `Committed and pushed staged changes in ${repo.name}.`
       : `Committed staged changes in ${repo.name}.`);
+  }, `${type === "commitPush" ? "Committing and pushing" : "Committing"} ${repo.name}…`, {
+    id: type === "commitPush" ? "commit-push" : "commit", caption: "Committing…", feedback: "commit-feedback",
   });
 }
 $("commit").onclick = () => void commit("commit");
 $("commit-push").onclick = () => void commit("commitPush");
 function synchronize(type: "pull" | "push" | "fetch") {
+  const repo = selectedCommitRepo();
+  if (!repo) return;
+  const verb = type === "fetch" ? "Fetching" : type === "pull" ? "Pulling" : "Pushing";
   return task(async () => {
-    const repo = selectedCommitRepo();
-    if (!repo) return;
     if (type === "pull" && Object.keys(persisted.drafts).some((id) => JSON.parse(id)[0] === repo.id))
       throw new Error("Save or reload JiGit drafts in this repository before pulling.");
     const response = await request({ type, repo: repo.id, indexToken: repo.indexToken });
     if (response.snapshot) applySnapshot(response.snapshot);
     if (type === "pull" && file?.change.repo === repo.id) clearFile();
     notify(`${type === "pull" ? "Pulled upstream changes into" : type === "fetch" ? "Fetched remotes for" : "Pushed branch in"} ${repo.name}.`);
-  });
+  }, `${verb} ${repo.name}…`, { id: type, caption: `${verb}…`, feedback: "sync-feedback" });
 }
 $("fetch").onclick = () => void synchronize("fetch");
 $("pull").onclick = () => void synchronize("pull");
@@ -1484,10 +1671,7 @@ $("resolve").onclick = () => void mutate("resolve");
 $("hunk-select").onchange = () => showHunk();
 $("show-hunk").onclick = () => showHunk();
 $("move-hunk").onclick = () => void moveHunk();
-$("inline").onchange = () =>
-  diff?.updateOptions({
-    renderSideBySide: !($("inline") as HTMLInputElement).checked,
-  });
+$("inline").onchange = updateReviewLayout;
 $("context").onchange = () =>
   diff?.updateOptions({
     hideUnchangedRegions: {
@@ -1540,7 +1724,10 @@ window.addEventListener("message", (event) => {
   else if (message.type === "mode") setMode(message.conflicts);
   else if (message.type === "focus") {
     if (message.repo) {
+      ++loadGeneration;
+      clearFileLoading();
       selectedRepo = message.repo;
+      if (file && file.change.repo !== selectedRepo) clearFile();
       commitRepo = message.repo;
       ($("repo-filter") as HTMLSelectElement).value = selectedRepo;
       ($("commit-repo") as HTMLSelectElement).value = commitRepo;
@@ -1555,6 +1742,7 @@ window.addEventListener("message", (event) => {
     }
   }
 });
+syncControls();
 void request({ type: "restoreState" }).then((response) => {
   Object.assign(persisted, { drafts: {}, messages: {} }, response.state, localState);
   stateReady = true;
@@ -1574,4 +1762,10 @@ void request({ type: "restoreState" }).then((response) => {
       if (change) void selectFile(change);
     }
   })
-  .catch((error) => notify(String(error), true));
+  .catch((error) => {
+    if (!snapshotReceived) {
+      $("workspace-info").textContent = "Could not connect to Git";
+      $("files").innerHTML = '<div class="list-empty"><strong>Could not load repositories</strong><p>Use Refresh repositories to try again.</p></div>';
+    }
+    notify(String(error), true);
+  });

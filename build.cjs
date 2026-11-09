@@ -13,7 +13,7 @@ async function main() {
     format: "iife",
     target: "es2022",
     minify: true,
-    loader: { ".ttf": "file" },
+    loader: { ".ttf": "file", ".svg": "text" },
     assetNames: "[name]-[hash]",
   });
   await build({
